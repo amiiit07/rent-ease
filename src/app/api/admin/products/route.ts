@@ -18,6 +18,9 @@ const createProductSchema = z.object({
 
 export async function GET(req: import("next/server").NextRequest) {
   try {
+    if (!process.env.DATABASE_URL) {
+      return fail(new Error("Database not configured"));
+    }
     const auth = await requireAuth(req, [UserRole.ADMIN, UserRole.VENDOR]);
 
     const products = await db.product.findMany({
@@ -40,6 +43,9 @@ export async function GET(req: import("next/server").NextRequest) {
 
 export async function POST(req: import("next/server").NextRequest) {
   try {
+    if (!process.env.DATABASE_URL) {
+      return fail(new Error("Database not configured"));
+    }
     const auth = await requireAuth(req, [UserRole.ADMIN, UserRole.VENDOR]);
     const body = createProductSchema.parse(await req.json());
 
