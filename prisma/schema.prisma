@@ -1,0 +1,221 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  ADMIN
+  VENDOR
+  CUSTOMER
+}
+
+enum ProductCategory {
+  FURNITURE
+  APPLIANCE
+}
+
+enum OrderStatus {
+  DRAFT
+  PLACED
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
+
+enum RentalStatus {
+  SCHEDULED
+  ACTIVE
+  RETURN_REQUESTED
+  RETURNED
+}
+
+enum TicketStatus {
+  OPEN
+  IN_REVIEW
+  RESOLVED
+}
+
+enum ClaimStatus {
+  OPEN
+  UNDER_REVIEW
+  APPROVED
+  REJECTED
+}
+
+model Tenant {
+  id           String              @id @default(auto()) @map("_id") @db.ObjectId
+  name         String
+  slug         String              @unique
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+  memberships  Membership[]
+  products     Product[]
+  serviceAreas ServiceArea[]
+  orders       Order[]
+  rentals      Rental[]
+  tickets      MaintenanceTicket[]
+  claims       DamageClaim[]
+}
+
+model User {
+  id           String              @id @default(auto()) @map("_id") @db.ObjectId
+  name         String
+  email        String              @unique
+  passwordHash String
+  role         UserRole            @default(CUSTOMER)
+  createdAt    DateTime            @default(now())
+  memberships  Membership[]
+  orders       Order[]
+  rentals      Rental[]
+  tickets      MaintenanceTicket[]
+}
+
+model Membership {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String   @db.ObjectId
+  tenantId  String   @db.ObjectId
+  role      UserRole @default(CUSTOMER)
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, tenantId])
+  @@index([tenantId])
+}
+
+model ServiceArea {
+  id          String      @id @default(auto()) @map("_id") @db.ObjectId
+  tenantId    String      @db.ObjectId
+  city        String
+  zoneName    String
+  isActive    Boolean     @default(true)
+  createdAt   DateTime    @default(now())
+  tenant      Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  inventories Inventory[]
+
+  @@unique([tenantId, city])
+}
+
+model Product {
+  id              String          @id @default(auto()) @map("_id") @db.ObjectId
+  tenantId        String          @db.ObjectId
+  name            String
+  category        ProductCategory
+  monthlyRent     Int
+  securityDeposit Int
+  tenureOptions   Json
+  description     String
+  isActive        Boolean         @default(true)
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  tenant          Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  inventories     Inventory[]
+  orderItems      OrderItem[]
+  rentals         Rental[]
+
+  @@unique([tenantId, name])
+  @@index([tenantId, category])
+}
+
+model Inventory {
+  id           String      @id @default(auto()) @map("_id") @db.ObjectId
+  productId    String      @db.ObjectId
+  serviceAreaId String      @db.ObjectId
+  unitsTotal   Int
+  unitsReserved Int         @default(0)
+  product      Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
+  serviceArea  ServiceArea @relation(fields: [serviceAreaId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, serviceAreaId])
+  @@index([serviceAreaId])
+}
+
+model Order {
+  id              String      @id @default(auto()) @map("_id") @db.ObjectId
+  tenantId        String      @db.ObjectId
+  userId          String      @db.ObjectId
+  status          OrderStatus @default(PLACED)
+  totalAmount     Int
+  securityDeposit Int
+  deliveryDate    DateTime
+  city            String
+  addressLine     String
+  createdAt       DateTime    @default(now())
+  tenant          Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user            User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items           OrderItem[]
+
+  @@index([tenantId, status])
+  @@index([userId])
+}
+
+model OrderItem {
+  id              String   @id @default(auto()) @map("_id") @db.ObjectId
+  orderId         String   @db.ObjectId
+  productId       String   @db.ObjectId
+  tenureMonths    Int
+  monthlyRent     Int
+  securityDeposit Int
+  createdAt       DateTime @default(now())
+  order           Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product         Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  rental          Rental?
+
+  @@index([orderId])
+}
+
+model Rental {
+  id           String       @id @default(auto()) @map("_id") @db.ObjectId
+  tenantId     String       @db.ObjectId
+  userId       String       @db.ObjectId
+  productId    String       @db.ObjectId
+  orderItemId  String       @unique @db.ObjectId
+  status       RentalStatus @default(SCHEDULED)
+  startDate    DateTime
+  endDate      DateTime
+  city         String
+  createdAt    DateTime     @default(now())
+  tenant       Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product      Product      @relation(fields: [productId], references: [id], onDelete: Cascade)
+  orderItem    OrderItem    @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
+  tickets      MaintenanceTicket[]
+  claims       DamageClaim[]
+
+  @@index([tenantId, status])
+  @@index([userId])
+}
+
+model MaintenanceTicket {
+  id                 String       @id @default(auto()) @map("_id") @db.ObjectId
+  tenantId           String       @db.ObjectId
+  rentalId           String       @db.ObjectId
+  userId             String       @db.ObjectId
+  issue              String
+  status             TicketStatus @default(OPEN)
+  resolutionEtaHours Int?
+  createdAt          DateTime     @default(now())
+  tenant             Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  rental             Rental       @relation(fields: [rentalId], references: [id], onDelete: Cascade)
+  user               User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, status])
+}
+
+model DamageClaim {
+  id        String     @id @default(auto()) @map("_id") @db.ObjectId
+  tenantId  String     @db.ObjectId
+  rentalId  String     @db.ObjectId
+  amount    Int
+  status    ClaimStatus @default(OPEN)
+  note      String
+  createdAt DateTime   @default(now())
+  tenant    Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  rental    Rental     @relation(fields: [rentalId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, status])
+}
