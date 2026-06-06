@@ -2,6 +2,10 @@ import { UserRole } from "@prisma/client";
 import { fail, ok, requireAuth, ApiError } from "@/lib/api";
 import { db } from "@/lib/db";
 
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export async function GET(req: import("next/server").NextRequest) {
   try {
     if (!process.env.DATABASE_URL) {
