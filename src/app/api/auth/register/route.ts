@@ -5,6 +5,10 @@ import { createAccessToken, hashPassword } from "@/lib/auth";
 import { ApiError, fail } from "@/lib/api";
 import { db } from "@/lib/db";
 
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 const registerSchema = z.object({
   name: z.string().min(2),
   email: z.string().email(),

@@ -4,6 +4,10 @@ import { createAccessToken, verifyPassword } from "@/lib/auth";
 import { ApiError, fail } from "@/lib/api";
 import { db } from "@/lib/db";
 
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 const loginSchema = z.object({
   email: z.string().email(),
   password: z.string().min(8),

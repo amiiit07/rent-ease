@@ -4,6 +4,10 @@ import { z } from "zod";
 import { ApiError, fail, ok, requireAuth } from "@/lib/api";
 import { db } from "@/lib/db";
 
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 const createOrderSchema = z.object({
   city: z.string().min(2),
   addressLine: z.string().min(8),

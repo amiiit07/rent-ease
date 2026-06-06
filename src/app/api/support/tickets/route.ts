@@ -3,6 +3,10 @@ import { z } from "zod";
 import { ApiError, fail, ok, requireAuth } from "@/lib/api";
 import { db } from "@/lib/db";
 
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 const createTicketSchema = z.object({
   rentalId: z.string().min(1),
   issue: z.string().min(5),
