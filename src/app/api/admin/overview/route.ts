@@ -1,9 +1,12 @@
 import { UserRole } from "@prisma/client";
-import { fail, ok, requireAuth } from "@/lib/api";
+import { fail, ok, requireAuth, ApiError } from "@/lib/api";
 import { db } from "@/lib/db";
 
 export async function GET(req: import("next/server").NextRequest) {
   try {
+    if (!process.env.DATABASE_URL) {
+      return fail(new ApiError(503, "Database not configured"));
+    }
     const auth = await requireAuth(req, [UserRole.ADMIN, UserRole.VENDOR]);
 
     const [activeRentals, openTickets, openClaims, ordersCount, inventories, mrr] = await Promise.all([
